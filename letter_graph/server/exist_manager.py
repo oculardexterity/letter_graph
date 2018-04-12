@@ -1,3 +1,4 @@
+import aiohttp
 import logging
 import requests
 import urllib.parse
@@ -47,11 +48,15 @@ class ExistManager:
     def _build_xquery_gets_as_methods(cls):
         for xquery in cls.xqueries:
 
-            def func(self, *x, **y):
+            async def func(self, *x, **y):
                 self.logger.debug('function called')
                 url = self._build_xquery_url(xquery, *x, **y)         
-                res = requests.get(url)
-                return res
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get('https://api.github.com/events') as resp:
+                        print(resp.status)
+                        print(await resp.text())
+
 
             setattr(cls, xquery, func)
 

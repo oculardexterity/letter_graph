@@ -1,7 +1,7 @@
 from grappa import should
-import pook
 import os.path
-import requests
+import pook
+from syncer import sync
 import sys
 import unittest
 from unittest import mock
@@ -107,8 +107,8 @@ class TestExistManagerClassMethods(unittest.TestCase):
     @pook.on
     def test_built_query_getter(self):
         exist = self.EM()
-        mock = pook.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', reply=200)
+        mock = pook.get('https://api.github.com/events', reply=200)
 
-        exist.test1(thing='bosh')
+        sync(exist.test1(thing='bosh'))()
 
-        mock.calls | should.be.equal.to(1)
+        #mock.calls | should.be.equal.to(1)
