@@ -109,9 +109,21 @@ class TestExistManagerClassMethods(unittest.TestCase):
     @aioresponses()
     def test_built_query_getter(self, mocked):
         exist = self.EM()
+        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=200, body='testBody')
+        
+        status, body = sync(exist.test1)(thing='bosh')
+        
+        status | should.be.equal.to(200)
+        body | should.be.equal.to('testBody')
 
+    @aioresponses()
+    def test_built_query_getter_again(self, mocked):
+        # Testing this again as there was some issue calling the wrong function
+        # wrt the URL generated... some dodgy caching?
+
+        exist = self.EM()
         mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', status=200, body='testBody')
-
+        
         status, body = sync(exist.test2)(thing='bosh')
         
         status | should.be.equal.to(200)
