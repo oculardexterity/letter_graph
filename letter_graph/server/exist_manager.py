@@ -11,6 +11,7 @@ logger.setLevel(logging.DEBUG)
 
 
 
+
 class ExistManager:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -47,17 +48,7 @@ class ExistManager:
     @classmethod
     def _build_xquery_gets_as_methods(cls):
         for xquery in cls.xqueries:
-
-            async def func(self, *x, **y):
-                self.logger.debug('function called')
-                url = self._build_xquery_url(xquery, *x, **y)         
-                
-                async with aiohttp.ClientSession() as session:
-                    async with session.get('https://api.github.com/events') as resp:
-                        print(resp.status)
-                        print(await resp.text())
-
-
+            func = cls._build_xquery_getter_func(xquery)
             setattr(cls, xquery, func)
 
     def _build_xquery_url(self, xquery, *args, **kwargs):
@@ -85,10 +76,19 @@ class ExistManager:
         return ''.join(url)
 
 
+    @classmethod
+    def _build_xquery_getter_func(cls, xquery):
 
+        async def func(self, *x, **y):
+            self.logger.debug('function called')
+            url = self._build_xquery_url(xquery, *x, **y)
+            self.logger.debug('URL:', url)
+            async with aiohttp.ClientSession() as session:
+                resp = await session.get(url)
+                resp_text = await resp.text()
+            return resp.status, resp_text
 
-
-
+        return func
 
 
 if __name__ == '__main__':

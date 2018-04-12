@@ -1,6 +1,8 @@
+from aioresponses import aioresponses
+
 from grappa import should
 import os.path
-import pook
+
 from syncer import sync
 import sys
 import unittest
@@ -104,11 +106,14 @@ class TestExistManagerClassMethods(unittest.TestCase):
                 'Args passed as dict and keyword arguments; only args used'
             )
 
-    @pook.on
-    def test_built_query_getter(self):
+    @aioresponses()
+    def test_built_query_getter(self, mocked):
         exist = self.EM()
-        mock = pook.get('https://api.github.com/events', reply=200)
 
-        sync(exist.test1(thing='bosh'))()
+        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', status=200, body='testBody')
 
-        #mock.calls | should.be.equal.to(1)
+        status, body = sync(exist.test2)(thing='bosh')
+        
+        status | should.be.equal.to(200)
+        body | should.be.equal.to('testBody')
+        
