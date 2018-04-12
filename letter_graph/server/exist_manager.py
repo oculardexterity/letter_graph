@@ -1,11 +1,12 @@
 import logging
+import requests
 import urllib.parse
 import xmlrpc.client
 import warnings
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 
@@ -16,8 +17,7 @@ class ExistManager:
     @classmethod
     def setup(cls, config, mode='development'):
 
-        cls.logger.debug(f"{__name__}.setup method called: config: {config}")
-        
+        #cls.logger.debug(f"{__name__}.setup method called: config: {config}")
 
         for key, value in {**config[mode], **config['global']}.items():
             setattr(cls, key, value)
@@ -32,7 +32,7 @@ class ExistManager:
         )
 
         cls.xqueries = cls._get_xqueries_from_exist()
-        cls._build_xqueries_as_methods()
+        cls._build_xquery_gets_as_methods()
 
     @classmethod
     def _get_xqueries_from_exist(cls):
@@ -43,29 +43,32 @@ class ExistManager:
                     if d['name'].endswith('.xql')]
         return xqueries
 
-
     @classmethod
-    def _build_xqueries_as_methods(cls):
+    def _build_xquery_gets_as_methods(cls):
         for xquery in cls.xqueries:
-            func = cls._build_xquery_caller(xquery)
+
+            def func(self, *x, **y):
+                self.logger.debug('function called')
+                url = self._build_xquery_url(xquery, *x, **y)         
+                res = requests.get(url)
+                return res
+
             setattr(cls, xquery, func)
 
-    @staticmethod
-    def _build_xquery_caller(xquery):
-        async def func(*args, **kwargs):
+    def _build_xquery_url(self, xquery, *args, **kwargs):
+        '''
+        Builds query url from xquery name and parameters
+        to pass as GET variables
 
+        Parameters can be passed as single dict,
+        or as keyword arguments.
 
-            pass
-
-
-        return func
-
-    @classmethod
-    def _build_query_url(cls, xquery, *args, **kwargs):
-        url = [f"http://{cls.address}"]
-        if cls.port:
-            url.append(f":{cls.port}")
-        url.append(f"/exist/apps/{cls.app_name}/{xquery}.xql")
+        (Dict takes precedence over keywords)
+        '''
+        url = [f"http://{self.address}"]
+        if self.port:
+            url.append(f":{self.port}")
+        url.append(f"/exist/apps/{self.app_name}/{xquery}.xql")
         if len(args) == 1 and type(args[0]) == dict and kwargs:
             warnings.warn('Args passed as dict and keyword arguments; only args used', SyntaxWarning)
         if len(args) == 1 and type(args[0]) == dict:
@@ -75,7 +78,6 @@ class ExistManager:
             url.append('?')
             url.append(urllib.parse.urlencode(kwargs, quote_via=urllib.parse.quote))
         return ''.join(url)
-
 
 
 

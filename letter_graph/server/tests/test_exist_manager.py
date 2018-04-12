@@ -1,5 +1,7 @@
 from grappa import should
+import pook
 import os.path
+import requests
 import sys
 import unittest
 from unittest import mock
@@ -72,32 +74,41 @@ class TestExistManagerClassMethods(unittest.TestCase):
         exist | should.implement.methods('test1', 'test2')
 
 
-    def test_build_query_url(self):
+    def test_build_xquery_url(self):
+        exist = self.EM()
         d = MOCK_EXIST_CONFIG['development']
         g = MOCK_EXIST_CONFIG['global']
 
         base_url = f"http://{d['address']}:{d['port']}/exist/apps/{g['app_name']}/test1.xql"
 
         # Test no args produced base url
-        self.EM._build_query_url('test1') | should.be.equal.to(base_url)
+        exist._build_xquery_url('test1') | should.be.equal.to(base_url)
 
         # Test single arg
-        self.EM._build_query_url('test1', thing='thang') | \
+        exist._build_xquery_url('test1', thing='thang') | \
             should.be.equal.to(base_url + '?thing=thang')
 
         # Test two args, one with spaces
-        self.EM._build_query_url('test1', thing='thang', other='one two') | \
+        exist._build_xquery_url('test1', thing='thang', other='one two') | \
             should.be.equal.to(base_url + '?thing=thang&other=one%20two')
 
         # Test args passed as dict instead of keywords
-        self.EM._build_query_url('test1', {'thing': 'thang'}) | \
+        exist._build_xquery_url('test1', {'thing': 'thang'}) | \
             should.be.equal.to(base_url + '?thing=thang')
 
-        # Test throw a warning if *args as dict and **kwargs both used 
+        # Test throw a warning if *args as dict and **kwargs both used
         # (n.b. uses only *args dict in such cases)
         with warnings.catch_warnings(record=True) as ws:
-            self.EM._build_query_url('test1', {'argKey': 'argValue'}, thing='thang')
-            str(ws[0].message) | \
-            should.be.equal.to('Args passed as dict and keyword arguments; only args used')
+            exist._build_xquery_url('test1', {'argKey': 'argValue'}, thing='thang')
+            str(ws[0].message) | should.be.equal.to(
+                'Args passed as dict and keyword arguments; only args used'
+            )
 
-            
+    @pook.on
+    def test_built_query_getter(self):
+        exist = self.EM()
+        mock = pook.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', reply=200)
+
+        exist.test1(thing='bosh')
+
+        mock.calls | should.be.equal.to(1)
