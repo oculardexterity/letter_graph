@@ -1,5 +1,6 @@
 import aiohttp
 import logging
+import re
 import requests
 from syncer import sync
 import urllib.parse
@@ -12,6 +13,9 @@ logger.setLevel(logging.DEBUG)
 
 
 class ExistQueryNotFoundError(Exception):
+    pass
+
+class ExistQueryExceptionError(Exception):
     pass
 
 
@@ -92,14 +96,21 @@ class ExistManager:
                 resp = await session.get(url)
                 self.validate_resp_status(xquery, resp.status)
                 resp_text = await resp.text()
+                self.validate_resp_text(xquery, resp_text)
             return resp_text
 
         return func
 
     def validate_resp_status(self, xquery, status):
-        self.logger.debug('statusass', status)
         if status == 404:
             raise ExistQueryNotFoundError(f'{xquery}.xql not found.')
+
+    def validate_resp_text(self, xquery, text):
+        text = text.replace('<?xml version="1.0" ?>', '').strip()
+        if text.startswith('<exception>') and text.endswith('</exception>'):
+            msg = re.findall(r'(?<=<message>).*?(?=\s?</message>)', text)[0]
+            raise ExistQueryExceptionError(msg)
+
 
 
 if __name__ == '__main__':

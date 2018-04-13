@@ -15,6 +15,7 @@ sys.path.insert(0, parent)
 
 import exist_manager
 from exist_manager import ExistQueryNotFoundError
+from exist_manager import ExistQueryExceptionError
 
 MOCK_EXIST_CONFIG = {
 
@@ -44,6 +45,18 @@ MOCK_EXIST_getCollectionDesc = {
     'name': '/db/apps/testapp',
     'group': 'dba'
 }
+
+
+
+
+ERROR_XML = '''
+
+
+<?xml version="1.0" ?><exception>
+<path>/db/apps/testapp/new_test_file.xql</path>
+<message>[FAKEEXISTERRMSG]
+</message></exception>
+'''
 
 
 
@@ -129,16 +142,34 @@ class TestExistManagerClassMethods(unittest.TestCase):
         response | should.be.equal.to('testBody')
 
     @aioresponses()
-    def test_built_query_getter_with_404(self, mocked):
+    def test_built_query_getter_with_HTTP_err_codes(self, mocked):
+
+        codes_and_exeptions = {
+            404: (ExistQueryNotFoundError, 'test1.xql not found.'),
+        }
 
         exist = self.EM()
-        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=404)
 
-        with pytest.raises(ExistQueryNotFoundError) as err:
+        for code, error in codes_and_exeptions.items():
+
+            mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=code)
+
+            with pytest.raises(error[0]) as err:
+                sync(exist.test1)(thing='bosh')
+
+            str(err.value) | should.be.equal.to(error[1])
+            type(err.value) | should.be.equal.to(error[0])
+
+
+    @aioresponses()
+    def test_built_query_getter_with_exception_query(self, mocked):
+        exist = self.EM()
+        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=200, body=ERROR_XML)
+
+        with pytest.raises(ExistQueryExceptionError) as err:
             sync(exist.test1)(thing='bosh')
 
-        str(err.value) | should.be.equal.to('test1.xql not found.')
-        type(err.value) | should.be.equal.to(ExistQueryNotFoundError)
+        str(err.value) | should.be.equal.to("[FAKEEXISTERRMSG]")
 
 
 
