@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 import logging
+import os
 import re
 from syncer import sync
 import urllib.parse
@@ -54,19 +55,27 @@ class ExistManager:
             raise ExistCollectionNotFoundError(f'"{cls.app_name}" not found in eXist.') from None
         raise ExistError('There was a non-identifiable error with eXist-XMLRPC connection.') from None
 
-    # And test to make sure this throws errors if not there...!
+
     @classmethod
-    def _get_xqueries_from_exist(cls):
+    def _get_collection_desc(cls):
+        ''' Also a good method for checking collection exists '''
         try:
             desc = cls.rpc.getCollectionDesc(cls.app_path)
         except xmlrpc.client.Fault as e:
-            cls.logger.debug(e)
             cls._raise_existman_exceptions_from_exist_rpc(e)
+        return desc
+
+    # And test to make sure this throws errors if not there...!
+    @classmethod
+    def _get_xqueries_from_exist(cls):
+        desc = cls._get_collection_desc()
             
         xqueries = [d['name'].replace('.xql', '')
                     for d
                     in desc['documents']
                     if d['name'].endswith('.xql')]
+
+        #print(xqueries)
         return xqueries
 
     @classmethod
@@ -81,7 +90,7 @@ class ExistManager:
     def _build_xquery_getter_func(cls, xquery):
 
         async def func(self, *x, **y):
-            self.logger.debug('function called')
+            #self.logger.debug('function called')
             url = self._build_xquery_url(xquery, *x, **y)
             self.logger.debug('URL:', url)
             async with aiohttp.ClientSession() as session:
@@ -115,6 +124,7 @@ class ExistManager:
         elif kwargs:
             url.append('?')
             url.append(urllib.parse.urlencode(kwargs, quote_via=urllib.parse.quote))
+
         return ''.join(url)
 
     def validate_resp_status(self, xquery, status):
@@ -127,11 +137,27 @@ class ExistManager:
             msg = re.findall(r'(?<=<message>).*?(?=\s?</message>)', text)[0]
             raise ExistQueryExceptionError(msg)
 
+    @classmethod
+    def copy_xqueries_to_exist(cls, reSetup=False):
+        cls._get_collection_desc()
 
+        files = [f for f in os.listdir(cls.xquery_path) if f.endswith('.xql')]
 
+        for file in files:
+            file_path = os.path.join(cls.xquery_path, file)
 
+            with open(file_path, 'rb') as f:
+                to_up = f.read()
 
+            f_id = cls.rpc.upload(to_up, len(to_up))
+            cls.rpc.parseLocal(f_id, f'/db/apps/{cls.app_name}/{file}', 1, 'application/xquery')
 
+            cls.rpc.setPermissions(f'/db/apps/{cls.app_name}/{file}', 493)
+
+        if reSetup:
+            # Aaaand reset...
+            cls.xqueries = cls._get_xqueries_from_exist()
+            cls._build_xquery_gets_as_methods()
 
 if __name__ == '__main__':
     import sys
@@ -141,10 +167,11 @@ if __name__ == '__main__':
 
     ExistManager.setup(EXIST_CONFIG)
 
+    ExistManager.copy_xqueries_to_exist(reSetup=True)
+
     exist = ExistManager()
 
-    loop = asyncio.get_event_loop()
-    res = loop.run_until_complete(exist.test(name='John', thing='strawberries'))
+    res = sync(exist.testOne)(name="John", other="Mick")
     print(res)
 
 
