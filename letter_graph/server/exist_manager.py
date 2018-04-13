@@ -1,7 +1,6 @@
 import aiohttp
 import logging
 import re
-import requests
 from syncer import sync
 import urllib.parse
 import xmlrpc.client

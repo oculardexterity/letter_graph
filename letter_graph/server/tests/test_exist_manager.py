@@ -49,11 +49,12 @@ MOCK_EXIST_getCollectionDesc = {
 
 
 
-ERROR_XML = '''
+
+ERROR_XML = f'''
 
 
 <?xml version="1.0" ?><exception>
-<path>/db/apps/testapp/new_test_file.xql</path>
+<path>/db/apps/testapp/{MOCK_EXIST_getCollectionDesc['documents'][0]['name']}</path>
 <message>[FAKEEXISTERRMSG]
 </message></exception>
 '''
@@ -88,7 +89,6 @@ class TestExistManagerClassMethods(unittest.TestCase):
     def test_build_xqueries_as_methods(self):
         exist = self.EM()
         exist | should.implement.methods('test1', 'test2')
-
 
     def test_build_xquery_url(self):
         exist = self.EM()
@@ -176,13 +176,13 @@ class TestExistManagerClassMethods(unittest.TestCase):
 
 
 
+
     @aioresponses()
     def test_build_query_getter_sync_version(self, mocked):
         exist = self.EM()
         mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', status=200, body='testBody')
         
         response = exist.test2_sync(thing='bosh')
-
 
         response | should.be.equal.to('testBody')
 
