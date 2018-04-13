@@ -137,8 +137,8 @@ class TestExistManagerClassMethods(unittest.TestCase):
         with pytest.raises(ExistQueryNotFoundError) as err:
             sync(exist.test1)(thing='bosh')
 
-        assert str(err.value) == 'test1.xql not found.'
-
+        str(err.value) | should.be.equal.to('test1.xql not found.')
+        type(err.value) | should.be.equal.to(ExistQueryNotFoundError)
 
 
 
