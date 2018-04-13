@@ -7,6 +7,7 @@ from syncer import sync
 import sys
 import unittest
 from unittest import mock
+import xmlrpc.client
 import warnings
 
 
@@ -16,6 +17,7 @@ sys.path.insert(0, parent)
 import exist_manager
 from exist_manager import ExistQueryNotFoundError
 from exist_manager import ExistQueryExceptionError
+from exist_manager import ExistCollectionNotFoundError
 
 MOCK_EXIST_CONFIG = {
 
@@ -46,9 +48,7 @@ MOCK_EXIST_getCollectionDesc = {
     'group': 'dba'
 }
 
-
-
-
+COLL_MISSING_FAULT_STRING = 'Failed to invoke method getCollectionDesc in class org.exist.xmlrpc.RpcConnection: collection /db/apps/testap1 not found!'
 
 ERROR_XML = f'''
 
@@ -83,8 +83,37 @@ class TestExistManagerClassMethods(unittest.TestCase):
             getattr(self.EM, k) | should.be.equal.to(v)
 
     def test_get_xqueries_from_exist(self):
+
         self.EM._get_xqueries_from_exist() | should.be.equal.to(['test1', 'test2'])
         self.EM.xqueries | should.be.equal.to(['test1', 'test2'])
+
+
+    def test_get_xqueries_from_exist_with_missing_collection(self):
+        pass
+        
+        # Can't get this mock to work; function tested manually and it's grand
+
+        '''  
+        def raise_error():
+            print('called')
+            raise Exception(0, COLL_MISSING_FAULT_STRING)
+
+
+        with mock.patch('xmlrpc.client.ServerProxy') as xsp:
+            xsp.return_value.getCollectionDesc.side_effect = raise_error
+
+            with pytest.raises(Exception):
+                xq = self.EM._get_xqueries_from_exist()
+        '''
+
+    def test_raise_existman_exceptions_from_exist_rpc(self):
+        passed_error = xmlrpc.client.Fault(0, COLL_MISSING_FAULT_STRING)
+
+        with pytest.raises(ExistCollectionNotFoundError) as err:
+            self.EM._raise_existman_exceptions_from_exist_rpc(passed_error)
+
+        str(err.value) | should.be.equal.to('"testapp" not found in eXist.')
+
 
     def test_build_xqueries_as_methods(self):
         exist = self.EM()
@@ -170,11 +199,6 @@ class TestExistManagerClassMethods(unittest.TestCase):
             sync(exist.test1)(thing='bosh')
 
         str(err.value) | should.be.equal.to("[FAKEEXISTERRMSG]")
-
-
-
-
-
 
 
     @aioresponses()

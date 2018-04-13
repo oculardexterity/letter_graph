@@ -9,7 +9,7 @@ MODE = 'development'
 EXIST_CONFIG = {
 
     'global': {
-        'app_name': 'letter_graph',
+        'app_name': 'testapp',
         'data_dir': 'letter_graph/data',
         'xquery_path': os.path.join('letter_graph', 'server', 'xquery')
     },
