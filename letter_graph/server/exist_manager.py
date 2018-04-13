@@ -1,6 +1,7 @@
 import aiohttp
 import logging
 import requests
+from syncer import sync
 import urllib.parse
 import xmlrpc.client
 import warnings
@@ -10,6 +11,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+class ExistQueryNotFoundError(Exception):
+    pass
 
 
 class ExistManager:
@@ -50,6 +53,8 @@ class ExistManager:
         for xquery in cls.xqueries:
             func = cls._build_xquery_getter_func(xquery)
             setattr(cls, xquery, func)
+            sync_func = sync(func)
+            setattr(cls, f'{xquery}_sync', sync_func)
 
     def _build_xquery_url(self, xquery, *args, **kwargs):
         '''
@@ -85,10 +90,16 @@ class ExistManager:
             self.logger.debug('URL:', url)
             async with aiohttp.ClientSession() as session:
                 resp = await session.get(url)
+                self.validate_resp_status(xquery, resp.status)
                 resp_text = await resp.text()
-            return resp.status, resp_text
+            return resp_text
 
         return func
+
+    def validate_resp_status(self, xquery, status):
+        self.logger.debug('statusass', status)
+        if status == 404:
+            raise ExistQueryNotFoundError(f'{xquery}.xql not found.')
 
 
 if __name__ == '__main__':

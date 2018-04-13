@@ -2,7 +2,7 @@ from aioresponses import aioresponses
 
 from grappa import should
 import os.path
-
+import pytest
 from syncer import sync
 import sys
 import unittest
@@ -14,6 +14,7 @@ parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent)
 
 import exist_manager
+from exist_manager import ExistQueryNotFoundError
 
 MOCK_EXIST_CONFIG = {
 
@@ -107,14 +108,13 @@ class TestExistManagerClassMethods(unittest.TestCase):
             )
 
     @aioresponses()
-    def test_built_query_getter(self, mocked):
+    def test_built_query_getter_when_result_returned(self, mocked):
         exist = self.EM()
         mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=200, body='testBody')
         
-        status, body = sync(exist.test1)(thing='bosh')
+        response = sync(exist.test1)(thing='bosh')
         
-        status | should.be.equal.to(200)
-        body | should.be.equal.to('testBody')
+        response | should.be.equal.to('testBody')
 
     @aioresponses()
     def test_built_query_getter_again(self, mocked):
@@ -124,8 +124,35 @@ class TestExistManagerClassMethods(unittest.TestCase):
         exist = self.EM()
         mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', status=200, body='testBody')
         
-        status, body = sync(exist.test2)(thing='bosh')
+        response = sync(exist.test2)(thing='bosh')
         
-        status | should.be.equal.to(200)
-        body | should.be.equal.to('testBody')
+        response | should.be.equal.to('testBody')
+
+    @aioresponses()
+    def test_built_query_getter_with_404(self, mocked):
+
+        exist = self.EM()
+        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test1.xql?thing=bosh', status=404)
+
+        with pytest.raises(ExistQueryNotFoundError) as err:
+            sync(exist.test1)(thing='bosh')
+
+        assert str(err.value) == 'test1.xql not found.'
+
+
+
+
+
+
+
+    @aioresponses()
+    def test_build_query_getter_sync_version(self, mocked):
+        exist = self.EM()
+        mocked.get('http://127.0.0.1:8080/exist/apps/testapp/test2.xql?thing=bosh', status=200, body='testBody')
+        
+        response = exist.test2_sync(thing='bosh')
+
+
+        response | should.be.equal.to('testBody')
+
         
