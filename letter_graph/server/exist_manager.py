@@ -12,17 +12,22 @@ import warnings
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
 class ExistError(Exception):
     pass
+
 
 class ExistQueryNotFoundError(Exception):
     pass
 
+
 class ExistQueryExceptionError(Exception):
     pass
 
+
 class ExistCollectionNotFoundError(Exception):
     pass
+
 
 class ExistManager:
     logger = logging.getLogger(__name__)
@@ -30,8 +35,6 @@ class ExistManager:
 
     @classmethod
     def setup(cls, config, mode='development'):
-
-        #cls.logger.debug(f"{__name__}.setup method called: config: {config}")
 
         for key, value in {**config[mode], **config['global']}.items():
             setattr(cls, key, value)
@@ -52,9 +55,11 @@ class ExistManager:
     @classmethod
     def _raise_existman_exceptions_from_exist_rpc(cls, error):
         if re.findall(r'collection\b.*\bnot found', str(error)):
-            raise ExistCollectionNotFoundError(f'"{cls.app_name}" not found in eXist.') from None
-        raise ExistError('There was a non-identifiable error with eXist-XMLRPC connection.') from None
+            msg = f'"{cls.app_name}" not found in eXist.'
+            raise ExistCollectionNotFoundError(msg) from None
 
+        msg = 'Unidentified error with eXist-XMLRPC.'
+        raise ExistError(msg) from None
 
     @classmethod
     def _get_collection_desc(cls):
@@ -69,13 +74,13 @@ class ExistManager:
     @classmethod
     def _get_xqueries_from_exist(cls):
         desc = cls._get_collection_desc()
-            
+
         xqueries = [d['name'].replace('.xql', '')
                     for d
                     in desc['documents']
                     if d['name'].endswith('.xql')]
 
-        #print(xqueries)
+        # print(xqueries)
         return xqueries
 
     @classmethod
@@ -117,7 +122,8 @@ class ExistManager:
             url.append(f":{self.port}")
         url.append(f"/exist/apps/{self.app_name}/{xquery}.xql")
         if len(args) == 1 and type(args[0]) == dict and kwargs:
-            warnings.warn('Args passed as dict and keyword arguments; only args used', SyntaxWarning)
+            w = 'Args passed as dict and keyword arguments; only args used'
+            warnings.warn(w, SyntaxWarning)
         if len(args) == 1 and type(args[0]) == dict:
             url.append('?')
             url.append(urllib.parse.urlencode(args[0], quote_via=urllib.parse.quote))
@@ -150,12 +156,17 @@ class ExistManager:
                 to_up = f.read()
 
             f_id = cls.rpc.upload(to_up, len(to_up))
-            cls.rpc.parseLocal(f_id, f'/db/apps/{cls.app_name}/{file}', 1, 'application/xquery')
+            cls.rpc.parseLocal(
+                f_id,                          # file id from chunk upload
+                f'/db/apps/{cls.app_name}/{file}',   # file name to assign
+                1,                               # overwrite existing file
+                'application/xquery'                           # mime type
+            )
 
             cls.rpc.setPermissions(f'/db/apps/{cls.app_name}/{file}', 493)
 
+        # Aaaand reset...
         if reSetup:
-            # Aaaand reset...
             cls.xqueries = cls._get_xqueries_from_exist()
             cls._build_xquery_gets_as_methods()
 
