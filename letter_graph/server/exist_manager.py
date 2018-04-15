@@ -170,6 +170,7 @@ class ExistManager:
             cls.xqueries = cls._get_xqueries_from_exist()
             cls._build_xquery_gets_as_methods()
 
+
 if __name__ == '__main__':
     import sys
     sys.path.append('../letter_graph')

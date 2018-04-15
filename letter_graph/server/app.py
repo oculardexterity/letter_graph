@@ -31,13 +31,7 @@ client = Client()
 
 
 
-
-
-
 exist = ExistManager()
-
-
-
 
 
 
@@ -56,7 +50,7 @@ def test(request):
 
 @app.get('/exist_test')
 async def exist_test(request):
-    result = await exist.testOne(name='John', other='Ian')
+    result = await exist.another_test(name='John', other='Ian')
     return response.text(result)
 
 
