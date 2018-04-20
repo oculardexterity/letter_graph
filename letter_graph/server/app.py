@@ -1,3 +1,4 @@
+import asyncio
 from exist_manager import ExistManager
 from graph import Graph
 import os.path
@@ -42,7 +43,8 @@ async def index(request):
 
 @app.get('/graph/<graph_type>')
 async def graph(request, graph_type='default'):
-    return response.json(default_graph.to_sigmajs_json())
+    resp = await default_graph.to_sigmajs_json()
+    return response.json(resp)
 
 
 @app.get('/test')
@@ -58,8 +60,8 @@ async def exist_test(request):
 
 
 def main():
-
-    app.run(host='0.0.0.0', port=8000)
+    loop = asyncio.get_event_loop()
+    app.run(host='0.0.0.0', port=8000, loop=loop)
 
 
 if __name__ == '__main__':

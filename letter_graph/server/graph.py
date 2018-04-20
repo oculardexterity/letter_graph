@@ -1,3 +1,6 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 import hashlib
 from io import StringIO
 import json
@@ -5,6 +8,8 @@ import networkx as nx
 import os
 import pickle
 
+
+thread_pool = ThreadPoolExecutor(max_workers=20)
 
 class Graph(nx.Graph):
     
@@ -33,7 +38,7 @@ class Graph(nx.Graph):
         graph_hash = hashlib.md5(string_to_hash.encode('utf-8')).hexdigest()
         return graph_hash
 
-    def get_positions(self):
+    async def get_positions(self):
 
         graph_hash = self.hash_graph()
         file_path = f'graph_positions/{graph_hash}.layout'
@@ -43,15 +48,16 @@ class Graph(nx.Graph):
                 return pickle.load(f)
         else:
             print(f'{graph_hash} not found; calculating')
-            positions = nx.spring_layout(self)
+            loop = asyncio.get_event_loop()
+            positions = await loop.run_in_executor(thread_pool, partial(nx.spring_layout, self))
             with open(file_path, 'wb') as f:
                 pickle.dump(positions, f)
             return positions
 
 
-    def to_sigmajs_json(self):
+    async def to_sigmajs_json(self):
         output = {"nodes": [], "edges": []}
-        positions = self.get_positions()
+        positions = await self.get_positions()
         for key, data in self.nodes(data=True):
             node = {}
             node['data'] = data
