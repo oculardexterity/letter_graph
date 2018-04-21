@@ -3,18 +3,22 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import hashlib
 from io import StringIO
+import logging
 import json
 import networkx as nx
 import os
 import pickle
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-thread_pool = ThreadPoolExecutor(max_workers=20)
+
 
 class Graph(nx.Graph):
     
     @classmethod
     def create_instance(cls, baseObject):
+        # Turn an nx.from_graphml Graph instance into the class itself
         instance =  __class__()
         instance.__class__ = type(baseObject.__class__.__name__,
                               (instance.__class__, baseObject.__class__),
@@ -22,8 +26,11 @@ class Graph(nx.Graph):
         instance.__dict__ = baseObject.__dict__
         return instance
 
+
     @classmethod
     def from_graphml(cls, file):
+        # Implements this as a class constructor method rather than
+        # how nx does it (as a random function?)
         if type(file) == str:
             file = StringIO(file)
 
@@ -38,18 +45,23 @@ class Graph(nx.Graph):
         graph_hash = hashlib.md5(string_to_hash.encode('utf-8')).hexdigest()
         return graph_hash
 
-    async def get_positions(self):
 
+    async def get_positions(self):
         graph_hash = self.hash_graph()
         file_path = f'graph_positions/{graph_hash}.layout'
+        
         if os.path.isfile(file_path):
-            print(f'{graph_hash} found; loading')
             with open(file_path, 'rb') as f:
                 return pickle.load(f)
+
         else:
-            print(f'{graph_hash} not found; calculating')
             loop = asyncio.get_event_loop()
-            positions = await loop.run_in_executor(thread_pool, partial(nx.spring_layout, self))
+
+            # The async task
+            positions = await loop.run_in_executor(
+                ThreadPoolExecutor(max_workers=20), 
+                partial(nx.spring_layout, self))
+
             with open(file_path, 'wb') as f:
                 pickle.dump(positions, f)
             return positions
