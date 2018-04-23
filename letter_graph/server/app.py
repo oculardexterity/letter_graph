@@ -3,6 +3,7 @@ from exist_manager import ExistManager
 from graph import Graph
 import os.path
 from sanic import Sanic
+from sanic.exceptions import NotFound
 from sanic import response
 from signal import signal
 from signal import SIGINT
@@ -44,18 +45,23 @@ client = Client()
 #       Begin routes       #
 ############################
 
+
+
+app.static('/static', 'letter_graph/client/')
+
+
 @app.get('/')
 async def index(request):
     return await response.file(client('index.html'))
 
 
-@app.get('/graph/<graph_type>')
+@app.get('/json/graph/<graph_type>')
 async def graph(request, graph_type='default'):
     resp = await default_graph.to_sigmajs_json()
     return response.json(resp)
 
 
-@app.get('/test')
+@app.get('/json/test')
 def test(request):
     return response.json({'hello': 'world'})
 
@@ -64,6 +70,7 @@ def test(request):
 async def exist_test(request):
     result = await exist.letters_test(name='John', other='Ian')
     return response.text(result)
+
 
 
 

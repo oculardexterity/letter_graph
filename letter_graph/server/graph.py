@@ -84,3 +84,9 @@ class Graph(nx.Graph):
             output["edges"].append(edge)
 
         return output
+
+
+    async def __add__(self, other_graph):
+        """ Think out the logic for merging two graphs """
+        new_graph = nx.Graph()
+        

@@ -15,7 +15,7 @@ exist = ExistManager()
 
 graphml = exist.letters_base_graph_sync()
 
-graph = Graph.read_graphml(graphml)
+graph = Graph.from_graphml(graphml)
 
 
 
