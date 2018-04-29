@@ -2,12 +2,16 @@ import asyncio
 from exist_manager import ExistManager
 from graph import Graph
 import os.path
+import json
 from sanic import Sanic
 from sanic.exceptions import NotFound
 from sanic import response
 from signal import signal
 from signal import SIGINT
+
+from syncer import sync
 import sys
+
 import uvloop
 
 
@@ -16,7 +20,7 @@ from config import EXIST_CONFIG
 
 # Set up ExistManager
 ExistManager.setup(EXIST_CONFIG)
-#ExistManager.copy_xqueries_to_exist(reSetup=True)
+ExistManager.copy_xqueries_to_exist(reSetup=True)
 
 # Create app
 app = Sanic()
@@ -27,6 +31,9 @@ exist = ExistManager()
 # Load the base graph for convenience
 # n.b. use synchronous version for pre-emptive setup
 default_graph = Graph.from_graphml(exist.letters_base_graph_sync())
+
+with open('output.json', 'w') as f:
+    f.write(exist.letters_base_graph_sync())
 
 
 # Funky little class that could probably be a function?
