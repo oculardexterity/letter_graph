@@ -1,5 +1,5 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from graph_tool import Graph as GT_Graph
 from graph_tool import load_graph as GT_load_graph
@@ -15,7 +15,7 @@ import weakref
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
+process_pool = ProcessPoolExecutor(max_workers=4)
 
 '''
 
@@ -46,6 +46,11 @@ class Graph:
         return getattr(self.g, attr)
 
     def hash_graph(self):
+        '''
+        Calculates the hash of a graph
+        by mashing all the node/edges as a string
+        and hashing
+        '''
         nodes_string = str([self.g.vp.v_id[v] for v in self.vertices()])
         edges_string = str([self.g.ep.e_id[e] for e in self.edges()])
         string_to_hash = ' '.join([nodes_string, edges_string])
@@ -54,6 +59,13 @@ class Graph:
 
 
     async def get_positions(self, refresh_layout=False):
+        '''
+        Gets positions for graph layout from a pickle file
+        
+        else calculates anew 
+        (graph layout run in separate thread)
+        '''
+
         graph_hash = self.hash_graph()
         file_path = f'graph_positions/{graph_hash}.layout'
 
@@ -68,10 +80,14 @@ class Graph:
 
         else:
             loop = asyncio.get_event_loop()
-            positions = await loop.run_in_executor(
-                ThreadPoolExecutor(max_workers=20),
-                partial(graph_tool.draw.sfdp_layout, self.g, gamma=4.0, mu=20.0, mu_p=10.0, C=2, verbose=True))
+            print(loop)
 
+            # This blocks ??
+            positions = await loop.run_in_executor(
+                process_pool,
+                partial(graph_tool.draw.sfdp_layout, self.g, gamma=4.0, mu=20.0, mu_p=10.0, C=2, verbose=True))
+            positions._PropertyMap__base_g = weakref.ref(self.g)
+            
             with open(file_path, 'wb') as f:
                 pickle.dump(positions, f)
 

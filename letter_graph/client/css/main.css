@@ -98,16 +98,31 @@ textarea {
    ========================================================================== */
 
 
-
+html, body {
+    height: 100%;
+    background-color: #666;
+}
 
 #graph_container {
-    height:600px;
-    width: 1200px;
-    border: thin solid red;
+    height:100%;
+    width: 100%;
+    background-color: #FFF;
 }
 
 
 
+#overlay {
+    position: absolute;
+    height:300px;
+    width: 300px;
+    border: thin solid red;
+    top: 100px;
+    left: 400px;
+    z-index: 1;
+    background-color: #FFF;
+    opacity:0.5;
+
+}
 
 
 
