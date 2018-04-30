@@ -30,6 +30,7 @@ function build_graph(resp_json) {
 	}
 
 	for (let edge of resp_json.edges) {
+		console.log(edge)
 		s.graph.addEdge(edge);
 	}
 

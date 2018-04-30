@@ -19,9 +19,11 @@ return
         </key>
         <key id="type" for="node" attr.name="type" attr.type="string"/>
         <key id="title" for="node" attr.name="title" attr.type="string"/>
+        <key id="v_id" for="node" attr.name="v_id" attr.type="string"/>
         <key id="node_color" for="node" attr.name="color" attr.type="string"/>
         <key id="letter_id" for="node" attr.name="letter_id" attr.type="string"/>
         <key id="lighten_color" for="node" attr.name="lighten_color" attr.type="string"/>
+        <key id="e_id" for="edge" attr.name="e_id" attr.type="string"/>
         <key id="edge_label" for="edge" attr.name="edge_label" attr.type="string"/>
         <key id="edge_type" for="edge" attr.name="edge_type" attr.type="string"/>
         
@@ -32,9 +34,9 @@ return
         			let $person := $listPersons//tei:person[@xml:id=$personId]
 	        		return
 	        			<node id="{$personId}">
+                            <data key="v_id">{$personId}</data>
 		        			<data key="label">{$person/tei:persName/string()}</data>
 	                        <data key="type">Person</data>
-	        				
 	        			</node>
 
         	}
@@ -43,6 +45,7 @@ return
         		for $letter in $letters
         			return
         			    <node id="{$letter//tei:teiHeader/substring(@xml:id, 7)}">
+                            <data key="v_id">{$letter//tei:teiHeader/substring(@xml:id, 7)}</data>
         			    	<data key="title">{$letter//tei:titleStmt//tei:title/string()}</data>
         					<data key="type">Letter</data>
         			    </node>
@@ -60,6 +63,7 @@ return
             			    
             			    return
             			    	<edge source="{$senderRef}" target="{$letterId}">
+                                    <data key="e_id">{$senderRef}{$letterId}</data>
                                     <data key="edge_type">SenderToLetter</data>
                                 </edge>
                          
@@ -76,6 +80,7 @@ return
 
         		            return 
         	                	<edge source="{$letterId}" target="{$recipientRef}">
+                                    <data key="e_id">{$letterId}{$recipientRef}</data>
                                     <data key="edge_type">LetterToRecipient</data>
                                 </edge>
         	        

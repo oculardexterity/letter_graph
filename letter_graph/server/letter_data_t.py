@@ -15,8 +15,12 @@ exist = ExistManager()
 
 graphml = exist.letters_base_graph_sync()
 
+#print(graphml)
 graph = Graph.from_graphml(graphml)
 
+
+
+#print()
 
 
 
