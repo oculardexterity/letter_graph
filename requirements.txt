@@ -19,7 +19,7 @@ orderedmultidict==0.7.11
 pbr==4.0.2
 pluggy==0.6.0
 pook==0.2.5
-py==1.5.3
+py==1.10.0
 pytest==3.5.0
 requests==2.18.4
 sanic==0.7.0
